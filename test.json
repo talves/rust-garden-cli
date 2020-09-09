@@ -1,0 +1,13 @@
+{
+  "title": "My config file",
+  "authors": [
+    {
+      "name": "Tony Alves",
+      "email": "tony@example.com"
+    },
+    {
+      "name": "Tony Alves",
+      "email": "talves@example.com"
+    }
+  ]
+}
