@@ -2,7 +2,7 @@
   "title": "My config file",
   "authors": [
     {
-      "name": "Tony Alves",
+      "null": "Tony Alves",
       "email": "tony@example.com"
     },
     {

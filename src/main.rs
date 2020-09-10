@@ -1,4 +1,4 @@
-use std::error::Error;
+// use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -35,13 +35,13 @@ struct Config {
     authors: Vec<Author>,
 }
 
-fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
+fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, String> {
     // Open the file in read-only mode with buffer.
-    let file = File::open(path)?;
+    let file = File::open(path).map_err(|_e| "Failed to open file")?;
     let reader = BufReader::new(file);
 
     // Read the JSON contents of the file as an instance of `Config`.
-    let config = serde_json::from_reader(reader)?;
+    let config = serde_json::from_reader(reader).map_err(|_e| "Failed to parse json")?;
 
     // Return the `Config`.
     Ok(config)
@@ -51,7 +51,13 @@ fn main() {
     match Garden::from_args() {
         Garden::New { debug, input_path } => {
             println!("{}, {:?}", debug, input_path.to_str(),);
-            let config = read_config_from_file(input_path).unwrap();
+            let config = match read_config_from_file(input_path) {
+                Ok(config) => config,
+                Err(e) => {
+                    println!("{:?}", e);
+                    return;
+                }
+            };
             println!("{:#?}", config);
         }
     };
