@@ -1,4 +1,5 @@
 // use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -35,13 +36,48 @@ struct Config {
     authors: Vec<Author>,
 }
 
-fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, String> {
+#[derive(PartialEq, Debug)]
+enum MessageType {
+    Open,
+    ReadJSON,
+}
+
+impl fmt::Display for MessageType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let description = match *self {
+            MessageType::Open => "Failed to open file",
+            MessageType::ReadJSON => "Failed to parse json",
+        };
+        f.write_str(description)
+    }
+}
+
+#[derive(Debug)]
+struct ConfigError {
+    err_type: MessageType,
+    err_message: String,
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let description = format!("{}", &self.err_type);
+        f.write_str(&format!("{}: {}", description, self.err_message).to_string())
+    }
+}
+
+fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, ConfigError> {
     // Open the file in read-only mode with buffer.
-    let file = File::open(path).map_err(|_e| "Failed to open file")?;
+    let file = File::open(path).map_err(|e| ConfigError {
+        err_type: MessageType::Open,
+        err_message: format!("{}", e),
+    })?;
     let reader = BufReader::new(file);
 
     // Read the JSON contents of the file as an instance of `Config`.
-    let config = serde_json::from_reader(reader).map_err(|_e| "Failed to parse json")?;
+    let config = serde_json::from_reader(reader).map_err(|e| ConfigError {
+        err_type: MessageType::ReadJSON,
+        err_message: format!("{}", e),
+    })?;
 
     // Return the `Config`.
     Ok(config)
@@ -50,11 +86,13 @@ fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, String> {
 fn main() {
     match Garden::from_args() {
         Garden::New { debug, input_path } => {
-            println!("{}, {:?}", debug, input_path.to_str(),);
+            if debug {
+                println!("args: {}, {:?}", debug, input_path);
+            };
             let config = match read_config_from_file(input_path) {
                 Ok(config) => config,
                 Err(e) => {
-                    println!("{:?}", e);
+                    println!("{}", e);
                     return;
                 }
             };
