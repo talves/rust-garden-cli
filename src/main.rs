@@ -5,7 +5,9 @@ use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
 
+use chrono::prelude::*;
 use serde::Deserialize;
+use serde::Serialize;
 
 use structopt::StructOpt;
 
@@ -14,7 +16,7 @@ use structopt::StructOpt;
 enum Garden {
     New {
         /// Activate debug mode
-        // short and long flags (-d, --debug) will be deduced from the field's name
+        // short and long flags (-d, --debug) will be deduced from the field"s name
         #[structopt(short, long)]
         debug: bool,
 
@@ -83,6 +85,20 @@ fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, ConfigError>
     Ok(config)
 }
 
+#[derive(Serialize)]
+struct Frontmatter {
+    draft: bool,
+    title: String,
+    path: String,
+    date: String,
+    author: String,
+    description: String,
+    categories: Vec<String>,
+    keywords: Vec<String>,
+    garden: String,
+    image: String,
+}
+
 fn main() {
     match Garden::from_args() {
         Garden::New { debug, input_path } => {
@@ -99,4 +115,18 @@ fn main() {
             println!("{:#?}", config);
         }
     };
+    let frontmatter = Frontmatter {
+        draft: true,
+        title: "This is a String".to_string(),
+        path: "/garden/{{slug}}".to_string(),
+        date: Utc::now().to_string(),
+        author: "talves".to_string(),
+        description: "This is just the description".to_string(), // multi-line  {{description}}
+        categories: ["draft".to_string()].to_vec(),              // - "draft"
+        keywords: ["new".to_string(), "garden".to_string()].to_vec(),
+        garden: "sprout".to_string(),
+        image: "/images/social/{{slug}}.png".to_string(),
+    };
+    let toml = toml::to_string(&frontmatter).unwrap();
+    println!("---\n{}---\n\n## First sub Title", toml);
 }
